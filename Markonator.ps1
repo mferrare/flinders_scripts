@@ -91,7 +91,7 @@ function MJFGetAttendanceData() {
         if ( $null -eq $cel_FAN ) {
             break
         }
-        $cel_Attendance = $sh_Deadlines.Cells.Item($i, 17).Value2
+        $cel_Attendance = $sh_Deadlines.Cells.Item($i, 16).Value2
         $b_Attendance = $true
         if ( $cel_Attendance -eq 0 ) {
             $b_Attendance = $false
@@ -100,7 +100,7 @@ function MJFGetAttendanceData() {
         # Find which seminar group and workshop group we're in
         $s_SeminarNumber = $null
         $s_WorkshopGroup = $null
-        $a_temp = ($sh_Deadlines.cells.Item($i, 6).Value2).split(',')
+        $a_temp = ($sh_Deadlines.cells.Item($i, 5).Value2).split(',')
         foreach ( $element in $a_temp) {
             # We need to examine our array of seminar groups and etxtract:
             # - the workshop we're in (ie: 'Seminar 0n')
@@ -272,81 +272,90 @@ function MJFLateSubmissionPenalty ( $SeminarNumber, $SubmissionDateTime, $maximu
 #
 # Main Program
 # 
-
-# Get our data
-$h_Deadlines = MJFGetSubmissionDeadlines
-$h_AttendanceInfo = MJFGetAttendanceData
-$s_markingFilePath, $a_MarkingTable = MJFGetMarkingSpreadsheet
-$h_SubmissionFileNames = MJFGetSubmissionFilePaths
-
-# We need to open up an instance of Word for word counting.
-$MSWord = New-Object -ComObject word.Application
-$MSWord.visible = $false
-
-# Iterate through marking table and process each row as we go
-foreach ( $row in $a_MarkingTable) {
-    # Store FAN for easy reference
-    $s_currentFAN = $row.FAN
-  
-    # Before we get any further, make sure we have an attendance record for the FAN
-    # If we don't, there's no point processing as that FAN hasn't been allocated
-    # a group (as opposed to being absent)
-    if ( $null -eq $h_AttendanceInfo[$s_currentFAN] ) {
-        continue
-    }
-
-    # Check attendance.  If the FAN didn't attend the seminar then set the
-    # grade to 0 and continue
-    if ( $null -ne $h_AttendanceInfo[$s_currentFAN]['Attendance'] -and -not $h_AttendanceInfo[$s_currentFAN]['Attendance']) {
-        $row.Grade = 0
-        $row.'Feedback comments' = "Did not attend workshop."
-        continue
-    }
-
-    # Easy reference to seminar number
-    $s_currentSeminarNumber = $h_AttendanceInfo[$s_currentFAN]['SeminarNumber']
-    # Exit if no seminar number.  Means not enrolled.  Set grade to 0 just in case.
-    if ( $null -eq $s_currentSeminarNumber ) {
-        $row.Grade = 0
-        $row.'Feedback comments' = "Not enrolled in any seminar"
-        continue
-    }
-
-    # Store feedback in here
-    $row_feedback = ""
-
-    # Late penalty calculation
-    # Convert the date in the marking CSV to a dateTime
-    $s_currentSubmission = $row.'Last modified (submission)'
-    $d_currentSubmission = [dateTime] $s_currentSubmission.split(',',2)[1].trim()
-    # get the penalty and apply it
-    $latePenalty, $lateFeedback = MJFLateSubmissionPenalty -SeminarNumber $s_currentSeminarNumber `
-                                    -SubmissionDateTime $d_currentSubmission `
-                                    -maximumMarks $row.'Maximum Grade' `
-                                    -penaltyDecimal 0.05 
-    $row.Grade -= $latePenalty
+function main() {
     
-    $row_feedback += " " + $lateFeedback
+    # Get our data
+    $h_Deadlines = MJFGetSubmissionDeadlines
+    $h_AttendanceInfo = MJFGetAttendanceData
+    $s_markingFilePath, $a_MarkingTable = MJFGetMarkingSpreadsheet
+    $h_SubmissionFileNames = MJFGetSubmissionFilePaths
 
-    # Word count
-    $wordPenalty, $wcFeedback = MJFWordCountPenalty -penaltyDecimal 0.05 `
-         -wordLimit $h_Deadlines[$s_currentSeminarNumber]['WordCount'] `
-         -submissionFilePath $h_SubmissionFileNames[$s_currentFAN] `
-         -maximumMarks $row.'Maximum Grade' `
-         -penaltyWordIncrement 100
-    $row.Grade -= $wordPenalty
-    $row_feedback += " " + $wcFeedback
+    # We need to open up an instance of Word for word counting.
+    $MSWord = New-Object -ComObject word.Application
+    $MSWord.visible = $false
 
-    # Write feedback
-    $row.'Feedback comments' = $row_feedback.Trim()
+    # Iterate through marking table and process each row as we go
+    $i_index = 0
+    foreach ( $row in $a_MarkingTable) {
+        # Store FAN for easy reference
+        $s_currentFAN = $row.FAN
+    
+        # Before we get any further, make sure we have an attendance record for the FAN
+        # If we don't, there's no point processing as that FAN hasn't been allocated
+        # a group (as opposed to being absent)
+        if ( $null -eq $h_AttendanceInfo[$s_currentFAN] ) {
+            continue
+        }
+
+        # Check attendance.  If the FAN didn't attend the seminar then set the
+        # grade to 0 and continue
+        if ( $null -ne $h_AttendanceInfo[$s_currentFAN]['Attendance'] -and -not $h_AttendanceInfo[$s_currentFAN]['Attendance']) {
+            $row.Grade = 0
+            $row.'Feedback comments' = "Did not attend workshop."
+            continue
+        }
+
+        # Easy reference to seminar number
+        $s_currentSeminarNumber = $h_AttendanceInfo[$s_currentFAN]['SeminarNumber']
+        # Exit if no seminar number.  Means not enrolled.  Set grade to 0 just in case.
+        if ( $null -eq $s_currentSeminarNumber ) {
+            $row.Grade = 0
+            $row.'Feedback comments' = "Not enrolled in any seminar"
+            continue
+        }
+
+        # Store feedback in here
+        $row_feedback = ""
+
+        # Late penalty calculation
+        # Convert the date in the marking CSV to a dateTime
+        $s_currentSubmission = $row.'Last modified (submission)'
+        $d_currentSubmission = [dateTime] $s_currentSubmission.split(',',2)[1].trim()
+        # get the penalty and apply it
+        $latePenalty, $lateFeedback = MJFLateSubmissionPenalty -SeminarNumber $s_currentSeminarNumber `
+                                        -SubmissionDateTime $d_currentSubmission `
+                                        -maximumMarks $row.'Maximum Grade' `
+                                        -penaltyDecimal 0.05 
+        $row.Grade -= $latePenalty
+        
+        $row_feedback += " " + $lateFeedback
+
+        # Word count
+        $wordPenalty, $wcFeedback = MJFWordCountPenalty -penaltyDecimal 0.05 `
+            -wordLimit $h_Deadlines[$s_currentSeminarNumber]['WordCount'] `
+            -submissionFilePath $h_SubmissionFileNames[$s_currentFAN] `
+            -maximumMarks $row.'Maximum Grade' `
+            -penaltyWordIncrement 100
+        $row.Grade -= $wordPenalty
+        $row_feedback += " " + $wcFeedback
+
+        # Write feedback
+        $row.'Feedback comments' = $row_feedback.Trim()
+
+        # Write some output to the console
+        Write-Host "Processed $i_index / " $a_MarkingTable.count
+        $i_index++
+    }
+
+    # Write the CSV
+    $outputFile = $s_markingFilePath + "_new.csv"
+    $a_MarkingTable | Export-CSV -Path $outputFile -NoTypeInformation
+
+    # Clean up
+    $MSWord.Quit()
+    Remove-Variable MSWord
+    [gc]::collect()
+    [gc]::WaitForPendingFinalizers()
 }
 
-# Write the CSV
-$outputFile = $s_markingFilePath + "_new.csv"
-$a_MarkingTable | Export-CSV -Path $outputFile -NoTypeInformation
-
-# Clean up
-$MSWord.Quit()
-Remove-Variable MSWord
-[gc]::collect()
-[gc]::WaitForPendingFinalizers()
+main
