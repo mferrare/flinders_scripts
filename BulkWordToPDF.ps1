@@ -71,13 +71,18 @@ function MJFConvertWordFilesToPDF ($pathToWordFiles, $pathToPDFFiles) {
     $app_Word = New-Object -ComObject Word.Application
 
     # This filter will find .doc as well as .docx documents
-    Get-ChildItem -Path $pathToWordFiles -Filter *.doc? | ForEach-Object {
+    $item_list = Get-ChildItem -Path $pathToWordFiles -Filter *.doc?
+    $num_items = $item_list.count
+    $item_list | ForEach-Object { $i = 1 } {
 
         $document = $app_Word.Documents.Open($_.FullName)
         $pdfFilename = $_.BaseName + ".pdf"
         $pdfFileFullPath = Join-Path -Path $pathToPDFFiles -ChildPath $pdfFilename
         $document.SaveAs([ref][system.object] $pdfFileFullPath, [ref] 17)
         $document.Close()
+
+        Write-Host "$i / $num_items"
+        $i += 1
     }
 
     $app_Word.Quit()
@@ -96,7 +101,7 @@ function __main__() {
     }
 
     # We store the PDFs in a different directory at the same level
-    $submissionPDFDir = MJFMakeDir -s_dirPath $submissionDir -s_newDir "PDF"
+    $submissionPDFDir = MJFMakeDir -s_dirPath $submissionDir -s_newDir "PDF - Individual"
 
     # Only proceed if we have successfully made the directory
     if ( $submissionPDFDir ){
