@@ -124,11 +124,16 @@ function MJFWordCountPenalty ( $penaltyDecimal, $penaltyWordIncrement, $wordLimi
     # Get the word count from the document
     if ( $submissionFilePath ) {
         #TODO: exception handling when opening non-existent or invalid documents
-        $wordDoc = $MSWord.Documents.Open($submissionFilePath)
-        $wordCount = $MSWord.ActiveDocument.ComputeStatistics(0, $false)
-        $wordDoc.close() | Out-Null
-        #[System.Runtime.InteropServices.Marshal]::ReleaseComObject($wordDoc) | Out-Null
-        #Remove-Variable wordDoc
+        try {
+            $wordDoc = $MSWord.Documents.Open($submissionFilePath)
+            $wordCount = $MSWord.ActiveDocument.ComputeStatistics(0, $false)
+        }
+        catch {
+            Write-Host "Error opening document: $submissionFilePath"
+        }
+        finally {
+            $wordDoc.close() | Out-Null
+        }
     }
 
     # TODO: What if word limit makes no sense?
@@ -232,10 +237,12 @@ function MJFWriteFeedback ( $currentRecord, $latePenalty, $latePenaltyString, $w
         if ( $wcPenalty -gt 0 ) {
             $allFeedback = $allFeedback + "<p><b>Word count penalty</b>: $wcPenalty ($wcPenaltyString)</p>"
         }
-        $allFeedback = $allFeedback + "<p><b>Mark awarded (after penalties)</b>: $netgrade</p>"
     } else {
-        $allFeedback = $allFeedback + "<p><b>Mark awarded</b>            : $grade</p>"
+        $netgrade = $grade
     }
+    $netpercent = "{0:P0}" -f ($netgrade / $currentRecord.'Maximum Grade')
+    $allFeedback = $allFeedback + "<p><b>Mark awarded:</b>           : $netgrade</p>"
+    $allFeedback = $allFeedback + "<p><b>Mark as percentage:</b>     : $netpercent</p>"
 
     if ( $feedback -ne "" ) {
         $allFeedback = $allFeedback + "<p>$feedback</p>"
@@ -259,13 +266,25 @@ function main() {
     $MSWord.visible = $false
 
     # Iterate through marking table and process each row as we go
-    $i_index = 0
+    $i_index = 1    # We just use this to display a basic progress indicator
     foreach ( $row in $a_gradesTable) {
         # Store FAN for easy reference
         $s_currentFAN = $row.FAN
 
+        # Write some output to the console
+        Write-Host "Processing $s_currentFAN ( $i_index /"$a_gradesTable.count")"
+
+        $i_index++
+
         # If there's nothing in the marking hash then we can skip this entry
         if ( -Not $h_MarksHash.ContainsKey($s_currentFAN) ) {
+            Write-Host "$s_currentFAN - no entry in marking spreadsheet"
+            continue
+        }
+
+        # Skip 'No submission' entries
+        if (  $row.'Individual submission status' -match '^No submission.*' ) {
+            Write-Host "$s_currentFAN - No submission"
             continue
         }
     
@@ -276,10 +295,14 @@ function main() {
         $d_submissionDeadline = MJFConvertToDate -dateString $row.'Due Date'
 
         # Get late penalty
+        # TODO: This doesn't work for group submissions as the 'Due Date' field does not
+        # exist in the CSV file!
         $latePenalty, $lateFeedback = MJFLateSubmissionPenalty -SubmissionDeadline $d_submissionDeadline `
                                         -SubmissionDateTime $d_currentSubmission `
                                         -maximumMarks $row.'Maximum Grade' `
                                         -penaltyDecimal 0.05 
+        $latePenalty = 0
+        $lateFeedback = ""
         
         # Get Word count penalty
         $wordPenalty, $wcFeedback = MJFWordCountPenalty -penaltyDecimal 0.05 `
@@ -303,10 +326,6 @@ function main() {
                             -latePenaltyString $lateFeedback `
                             -wcPenalty $wordPenalty `
                             -wcPenaltyString $wcFeedback
-
-        # Write some output to the console
-        Write-Host "Processed $i_index / " $a_gradesTable.count
-        $i_index++
     }
 
     # Write the CSV

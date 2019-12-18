@@ -22,20 +22,25 @@ function MJFGetFilePath ( $h_Properties )
     return $FileBrowser.FileName
 }
 
-# MJFGetDirPath
-# Returns the path of the selected directory
-function MJFGetDirPath ( $h_Properties ){
-
-    $DirBrowser = New-Object System.Windows.Forms.FolderBrowserDialog -Property @{
-        ShowNewFolderButton = $false
+# MJFGetFilePath
+# Expect: An hash of properties.
+# - key is the name of the property
+# - value is the value to set that property
+# Return: Full path name to the file selected
+# Makes a FileBrowser object with the specified properties for opening
+# a file.  We want all filebrowsers to select one file only.
+function MJFGetDirPath ( $h_Properties )
+{
+    $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ 
+        Multiselect = $false
     }
-
-    foreach ( $key in $h_Properties.keys ) {
-        $DirBrowser.$key = $h_Properties.$key
+    foreach($key in $h_Properties.keys) {
+        $FileBrowser.$key = $h_Properties.$key
     }
-    $null = $DirBrowser.ShowDialog()
-    
-    return $DirBrowser.SelectedPath
+    $null = $FileBrowser.ShowDialog()
+
+    # We just want the directory name
+    Split-Path -Path $FileBrowser.FileName
 }
 
 # MJFGetSubmissionDeadlines
@@ -157,7 +162,7 @@ function MJFGetSubmissionFilePaths() {
     $result = @{}
 
     # Get the folder where the documents are stored
-    $WordDocFolder = MJFGetDirPath -h_Properties @{ Description = "Select folder containing assignment submissions" }
+    $WordDocFolder = MJFGetDirPath -h_Properties @{ Title = "Select folder containing assignment submissions" }
     #$WordDocFolder = "C:\users\ferr0182\OneDrive - Flinders\LLAW2221_2019_S2\Workshop Assignments\Workshop 2\submissions"
 
     # Iterate through the files in that folder
@@ -191,11 +196,18 @@ function MJFWordCountPenalty ( $penaltyDecimal, $penaltyWordIncrement, $wordLimi
     # Get the word count from the document
     if ( $submissionFilePath ) {
         #TODO: exception handling when opening non-existent or invalid documents
-        $wordDoc = $MSWord.Documents.Open($submissionFilePath)
-        $wordCount = $MSWord.ActiveDocument.ComputeStatistics(0, $false)
-        $wordDoc.close() | Out-Null
-        #[System.Runtime.InteropServices.Marshal]::ReleaseComObject($wordDoc) | Out-Null
-        #Remove-Variable wordDoc
+        try {
+            $wordDoc = $MSWord.Documents.Open($submissionFilePath)
+            $wordCount = $MSWord.ActiveDocument.ComputeStatistics(0, $false)
+        }
+        catch {
+            Write-Host "Error opening document: $submissionFilePath"
+            # Need to set $wordCount to something so set to 0 for now
+            $wordCount = 0
+        }
+        finally {
+            $wordDoc.close() | Out-Null
+        }
     }
 
     # TODO: What if word limit makes no sense?
@@ -211,7 +223,7 @@ function MJFWordCountPenalty ( $penaltyDecimal, $penaltyWordIncrement, $wordLimi
         $wordsOverLimit = $wordCount - $wordLimit
         $wordsOverIncrement = [math]::Round( ($wordsOverLimit / $penaltyWordIncrement) + 0.5)
         $wordPenalty = $wordsOverIncrement * $maximumMarks * $penaltyDecimal
-        $lateFeedback = "Over word count penalty: " + $wordPenalty + " marks."
+        $lateFeedback = "Word count: $wordCount.  Word count penalty: $wordPenalty applied."
     }
 
     # Here's what to return
@@ -259,7 +271,7 @@ function MJFLateSubmissionPenalty ( $SeminarNumber, $SubmissionDateTime, $maximu
         # We reduce the mark by 5% per day
         # TODO.  >= 24 hours needs to be rounded up to the nearest 24 hours
         $f_reduction = [math]::Round(($d_submissionLateness.TotalHours / 24 * -1 ) + 0.5) * $maximumMarks * $penaltyDecimal
-        $lateFeedback += "Late submission penalty applied: " + $f_reduction + " marks."
+        $lateFeedback += "Paper submitted on $SubmissionDateTime.  Penalty applied: " + $f_reduction + " marks."
     } else {
         $f_reduction = 0.0
     }
@@ -285,10 +297,13 @@ function main() {
     $MSWord.visible = $false
 
     # Iterate through marking table and process each row as we go
-    $i_index = 0
+    $i_index = 1
     foreach ( $row in $a_MarkingTable) {
         # Store FAN for easy reference
         $s_currentFAN = $row.FAN
+
+        Write-Host "Processing $s_currentFAN ($i_index /" + $a_MarkingTable.Length + ")"
+        $i_index++
     
         # Before we get any further, make sure we have an attendance record for the FAN
         # If we don't, there's no point processing as that FAN hasn't been allocated
@@ -320,7 +335,14 @@ function main() {
         # Late penalty calculation
         # Convert the date in the marking CSV to a dateTime
         $s_currentSubmission = $row.'Last modified (submission)'
-        $d_currentSubmission = [dateTime] $s_currentSubmission.split(',',2)[1].trim()
+        try {
+            $d_currentSubmission = [dateTime] $s_currentSubmission.split(',',2)[1].trim()
+        }
+        catch {
+            $row.Grade = 0
+            $row.'Feedback comments' = "No submission"
+            continue
+        }
         # get the penalty and apply it
         $latePenalty, $lateFeedback = MJFLateSubmissionPenalty -SeminarNumber $s_currentSeminarNumber `
                                         -SubmissionDateTime $d_currentSubmission `
@@ -341,10 +363,6 @@ function main() {
 
         # Write feedback
         $row.'Feedback comments' = $row_feedback.Trim()
-
-        # Write some output to the console
-        Write-Host "Processed $i_index / " $a_MarkingTable.count
-        $i_index++
     }
 
     # Write the CSV

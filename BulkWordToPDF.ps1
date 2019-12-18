@@ -101,7 +101,7 @@ function __main__() {
     }
 
     # We store the PDFs in a different directory at the same level
-    $submissionPDFDir = MJFMakeDir -s_dirPath $submissionDir -s_newDir "PDF - Individual"
+    $submissionPDFDir = MJFMakeDir -s_dirPath $submissionDir -s_newDir "PDF - Teams - Resubmissions"
 
     # Only proceed if we have successfully made the directory
     if ( $submissionPDFDir ){
