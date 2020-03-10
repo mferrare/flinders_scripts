@@ -2,6 +2,8 @@
 # will be deleted.  Uses the DA API to get a list of emails
 # and smtplib and email to send the email.  Connects to my 
 # SNS server
+#
+# I never finished this.
 
 import json
 import os
