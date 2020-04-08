@@ -3,63 +3,12 @@
 # and convert it to PDF and store the PDFs in a folder called ../PDFs
 Add-Type -AssemblyName System.Windows.Forms
 
-# MJFGetFilePath
-# Expect: An hash of properties.
-# - key is the name of the property
-# - value is the value to set that property
-# Return: Full path name to the file selected
-# Makes a FileBrowser object with the specified properties for opening
-# a file.  We want all filebrowsers to select one file only.
-function MJFGetDirPath ( $h_Properties )
-{
-    $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ 
-        Multiselect = $false
-    }
-    foreach($key in $h_Properties.keys) {
-        $FileBrowser.$key = $h_Properties.$key
-    }
-    $null = $FileBrowser.ShowDialog()
+Import-Module .\MJFutils.psm1
 
-    # We just want the directory name
-    Split-Path -Path $FileBrowser.FileName
-}
-
-# MJFMakeDir
-# Expect: Path to parent of new directory to make, name of new directory
-# Return: the path to the new directory or false
-# Returns the path if the directory exists and is a directory or
-# if the directory is created.  False otherwise.
-function MJFMakeDir ( $s_dirPath, $s_newDir ){
-
-    # Make the path to PDFs
-    $parentPath = Split-Path -Path $s_dirPath -Parent
+# Global variables
+$nameOfDirectory = "PDF"
 
 
-    $PDFpath = Join-Path -Path $parentPath -ChildPath $s_newDir
-
-    # Check if it's a directory first
-    if ( Test-Path -Path $PDFpath -PathType Container ) {
-        return $PDFpath
-    }
-
-    # If we're here it either doesn't exist or isn't a directory.  If it exists and
-    # is a file then return $false.
-    if ( Test-Path -Path $PDFpath -PathType Leaf ) {
-        return $false
-    }
-
-    # If we're here then the path doesn't exist.  Create it
-    $null = New-Item -Path $parentPath -Name $s_newDir -ItemType "directory"
-
-    # Test again to make sure it's there
-    # Check if it's a directory first
-    if ( Test-Path -Path $PDFpath -PathType Container ) {
-        # Returning $PDFpath is also true
-        return $PDFpath
-    } else {
-        return $false
-    }
-}
 
 # MJFConvertWordFilesToPDF
 # Expect: Path to folder containing word files, path to folder to store PDF files
@@ -72,8 +21,14 @@ function MJFConvertWordFilesToPDF ($pathToWordFiles, $pathToPDFFiles) {
 
     # This filter will find .doc as well as .docx documents
     $item_list = Get-ChildItem -Path $pathToWordFiles -Filter *.doc?
+
+    # Store the count so we can show a basic progress indicator
     $num_items = $item_list.count
+
+    # Process each file.
     $item_list | ForEach-Object { $i = 1 } {
+
+        Write-Host "Trying $i / $num_items ($_.FullName)"
 
         $document = $app_Word.Documents.Open($_.FullName)
         $pdfFilename = $_.BaseName + ".pdf"
@@ -81,7 +36,6 @@ function MJFConvertWordFilesToPDF ($pathToWordFiles, $pathToPDFFiles) {
         $document.SaveAs([ref][system.object] $pdfFileFullPath, [ref] 17)
         $document.Close()
 
-        Write-Host "$i / $num_items"
         $i += 1
     }
 
@@ -101,7 +55,7 @@ function __main__() {
     }
 
     # We store the PDFs in a different directory at the same level
-    $submissionPDFDir = MJFMakeDir -s_dirPath $submissionDir -s_newDir "PDF - Teams - Resubmissions"
+    $submissionPDFDir = MJFMakeDir -s_dirPath $submissionDir -s_newDir $nameOfDirectory
 
     # Only proceed if we have successfully made the directory
     if ( $submissionPDFDir ){
