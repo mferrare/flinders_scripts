@@ -20,7 +20,7 @@ Import-Module .\MJFutils.psm1
 function main() {
     $CSVpath, $CSVData = MJFGetCSVFile("Select CSV Export of Problem Statements")
 
-    $theTeam = MJFGetTopicName
+    $theTeam = MJFGetTeamName
 
     # Connect to Teams
     $TeamCredentials = Connect-MicrosoftTeams
