@@ -113,5 +113,89 @@ function MJFGetTeamName() {
     $x
 }
 
+# MJFMakeDir
+# Expect: Path to parent of new directory to make, name of new directory
+# Return: the path to the new directory or false
+# Returns the path if the directory exists and is a directory or
+# if the directory is created.  False otherwise.
+
+function MJFMakeDir($s_dirPath, $s_newDir){
+<#
+    .Synopsis
+    Makes a new directory in the specified parent
+
+    .Parameter s_dirPath
+    Path to parent in which new directory will be made
+
+    .Parameter s_newDir
+    Name of the new subdirectory to be created
+
+    .Description
+    Creates a new subdirectory in the specified parent path
+#>
+
+    # Make the path to PDFs
+    $parentPath = Split-Path -Path $s_dirPath -Parent
+
+
+    $PDFpath = Join-Path -Path $parentPath -ChildPath $s_newDir
+
+    # Check if it's a directory first
+    if ( Test-Path -Path $PDFpath -PathType Container ) {
+        return $PDFpath
+    }
+
+    # If we're here it either doesn't exist or isn't a directory.  If it exists and
+    # is a file then return $false.
+    if ( Test-Path -Path $PDFpath -PathType Leaf ) {
+        return $false
+    }
+
+    # If we're here then the path doesn't exist.  Create it
+    $null = New-Item -Path $parentPath -Name $s_newDir -ItemType "directory"
+
+    # Test again to make sure it's there
+    # Check if it's a directory first
+    if ( Test-Path -Path $PDFpath -PathType Container ) {
+        # Returning $PDFpath is also true
+        return $PDFpath
+    } else {
+        return $false
+    }
+}
+
+
+function MJFGetDirPath ( $h_Properties )
+{
+<#
+    .Synopsis
+    Get the path of a selected directory
+
+    .Description
+    Makes a FileBrowser object, with the specified properties, for
+    opening a file.  We select one file in the directory and the path
+    of the directory containing the file is returned.  We select a directory
+    this way because the DirectoryBrowser object is more difficult to use
+    than a FileBrowser
+
+    .Parameter $h_Properties
+    A hash of properties
+    - key is the name of the property
+    - value is the value to set that property
+#>
+    $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ 
+        Multiselect = $false
+    }
+    foreach($key in $h_Properties.keys) {
+        $FileBrowser.$key = $h_Properties.$key
+    }
+    $null = $FileBrowser.ShowDialog()
+
+    # We just want the directory name
+    Split-Path -Path $FileBrowser.FileName
+}
+
 Export-ModuleMember -Function MJFGetCSVFile
 Export-ModuleMember -Function MJFGetTeamName
+Export-ModuleMember -Function MJFMakeDir
+Export-ModuleMember -Function MJFGetDirPath
