@@ -7,6 +7,9 @@ import csv
 g          = None    # PyGithub object
 # Destination path for cloning assessments
 clone_path = "C:/Users/ferr0182/Flinders/Flinders Law - LLAW3301 Law in a Digital Age/_LLAW3301_2020_S1/Assessment C3" 
+# Single path - we're cloning all repos here and not into group dirs
+single_path = "c:/users/ferr0182/OneDrive - Mark Ferraretto/Software/Flinders/GitHub"
+
 # CSV Export of user data from FLO
 user_data = "C:/Users/ferr0182/Flinders/Flinders Law - LLAW3301 Law in a Digital Age/_LLAW3301_2020_S1/llaw3301-law-in-a-digital-age---2020-s1 20200408.csv"
 
@@ -17,7 +20,7 @@ def initialise():
 
     # Connect to my GH
     global g
-    g = Github("cb83f61b559649196081f9678399adba277a7dca")
+    g = Github("91a44974b28eee9daa21e2cc9e2797a15deefd0d")
 
 def fork_repo(FAN):
     # Expect: FAN
@@ -28,6 +31,16 @@ def fork_repo(FAN):
     path_to_repo = '{}/docassemble-{}'.format(FAN, FAN)
     repo_to_fork = g.get_repo(path_to_repo)
     return g.get_user().create_fork(repo_to_fork)
+
+def clone_to_one_dir(forked_repo):
+    
+    # Clone into directory.
+    clone_URL = forked_repo.html_url
+    clone_dir = clone_URL.split('/')[-1]
+    # We don't need to store the resut of the clone_from() call but
+    # we do just in case we want it in future and also helps with
+    # debugging.
+    cloned_repo = git.Repo.clone_from(clone_URL, os.path.join(single_path, clone_dir))
 
 def clone_repo(forked_repo, group):
     # Expect: Repository object containing clone information,
@@ -101,7 +114,8 @@ def main():
     for FAN in all_data.keys():
         try:
             forked_repo = fork_repo(FAN)
-            clone_repo(forked_repo, all_data[FAN])
+            #clone_repo(forked_repo, all_data[FAN])
+            #clone_to_one_dir(forked_repo)
         except Exception as e:
             print('Error processing FAN: {} group {}: {}'.format(FAN, FAN, str(e)))
 
