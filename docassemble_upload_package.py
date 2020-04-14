@@ -6,6 +6,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 import argparse
+import logging
 
 # Global variable - store secrets and other config info in here.
 config_data = {}
@@ -131,15 +132,22 @@ def main():
     parser = argparse.ArgumentParser(description='Push local code to playground')
     parser.add_argument('path_to_package', help='Path to the top of docassemble package (eg: /path/to/docassemble-packagename)')
     parser.add_argument('--project', '-p', help='Docassemble playground project name (default is {})'.format(project_name))
+    parser.add_argument('--loglevel', help='Set logging level (default: INFO)')
 
     args = parser.parse_args()
 
     # Store variables
     da_package = args.path_to_package
+    if args.loglevel:
+        loglevel = args.loglevel
+    else:
+        loglevel = logging.INFO
+
     if args.project is not None:
         project_name = args.project.strip()
     
     #Initialise
+    logging.basicConfig(level=loglevel)
     get_API_key()
     get_API_URL()
     clean_out_playground()
@@ -150,11 +158,13 @@ def main():
     # as well.
     # Get the last part of the path
     packagename = os.path.basename(os.path.normpath(da_package))
+    logging.debug('packagename 1: {} da_package: {}'.format(packagename, da_package))
     # trim off the leading 'docassemble-'
     packagename = packagename.replace('docassemble-', '')
-
+    logging.debug('packagename 2: {}'.format(packagename))
     # Construct the path to the four folders
     path_to_folders = os.path.join(da_package, 'docassemble/{}/data'.format(packagename))
+    logging.debug('path_to_folders: {}'.format(path_to_folders))
 
     # Now we can push files up.  We only push up stated folders
     for a_folder in project_folders:
@@ -163,12 +173,13 @@ def main():
 
         # Construct the list of files and add to payload
         folder_path = os.path.join(path_to_folders, a_folder)
+        logging.debug('folder_path: {}'.format(folder_path))
         MJFpayload['files'] = MJFlist_files_in_dir(folder_path)
-
+        logging.debug('all the files: {}'.format(MJFpayload['files']))
         # Send
         MJFresponse = MJFpush_to_playground(MJFpayload)
         if MJFresponse.ok:
-            print('Pushed {}'.format(path_to_folders))
+            print('Pushed {}'.format(folder_path))
         else:
             print("Error: pushing {} to package {}: {} {} {} ".format(a_folder, packagename, MJFresponse.status_code, MJFresponse.reason, MJFresponse.text))
 main()
