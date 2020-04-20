@@ -21,6 +21,19 @@
                 "-p C3"
             ],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "MJFdocassemble_playground_manager.py",
+            "type": "python",
+            "request" : "launch",
+            "program" : "${file}",
+            "args": [
+                "--secrets C:/Users/ferr0182/OneDrive - Mark Ferraretto/kdb/secrets.json",
+                "--package C:/Users/ferr0182/OneDrive - Mark Ferraretto/Software/assembly-line/docassemble-MJFprocessedforms",
+                "--project C3",
+                "--pull"
+            ],
+            "console":"integratedTerminal"
         }
     ]
 }
