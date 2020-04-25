@@ -36,11 +36,11 @@ def push_to_playground(MJFpayload):
 
     Returns
     -------
-    HTTP response
+    Nothing
 
     Raises
     ------
-    Any exceptions raised as passed through
+    Exception raised if request not successful
     """
 
     # Initialise    
@@ -50,11 +50,14 @@ def push_to_playground(MJFpayload):
     file_payload = []
     for file in MJFpayload['files']:
         file_payload.append(
-            ('file', open(file, 'rb'))
+            ('files', open(file, 'rb'))
         )
+    del MJFpayload['files']
+    logging.debug('Push payload: {}'.format(MJFpayload))
+    logging.debug('File payload: {}'.format(file_payload))
     # Send the file
     response = requests.post(MJFpayload['URL'], data=MJFpayload, files=file_payload)
-    return response
+    response.raise_for_status()
 
 def list_playground_files(MJFpayload):
     """
@@ -362,8 +365,14 @@ def do_push():
         MJFpayload['files'] = []
         MJFpayload['folder'] = folder
         MJFpayload['files'] += list_files_to_push_or_pull(folder, list_local_files)
-        push_to_playground(MJFpayload)
-        logging.info('Pushed folder {}'.format(folder))
+        if len(MJFpayload['files']) > 0:
+            try:
+                push_to_playground(MJFpayload)
+                logging.info('Pushed folder {}'.format(folder))
+            except Exception as e:
+                logging.error('Could not push folder: {}  Error: {}'.format(folder, str(e)))
+        else:
+            logging.warn('No files to push for folder: {}'.format(folder))
     
 
 def do_pull():
