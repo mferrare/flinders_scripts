@@ -181,8 +181,9 @@ def clean_out_local_package():
     ------
     Exceptions from os.remove() are passed up
     """
-    for file in list_local_files():
-        os.remove(file)
+    for folder in project_folders:
+        for file in list_local_files(folder):
+            os.remove(file)
 
 def construct_API_payload(payload):
     """
