@@ -8,7 +8,7 @@ Import-Module .\MJFutils.psm1
 
 # Global Variables
 $late_submission_penalty = 0.05  # % penalty as a decimal
-$overword_limit = 750
+$overword_limit = 500
 $overword_increment = 100
 $overword_penalty = 0.05
 
@@ -42,7 +42,7 @@ function MJFGetSubmissionFilePaths() {
     return $result
 }
 
-function MJFLateSubmissionPenalty ( $late_submission, $maximumMarks, $penaltyDecimal ) {
+function MJFLateSubmissionPenalty ( $SubmissionDueDate, $SubmissionDate, $maximumMarks, $penaltyDecimal ) {
 <#
     .Synopsis
     Calculates lateness of submission and applies penalty if so.
@@ -57,8 +57,11 @@ function MJFLateSubmissionPenalty ( $late_submission, $maximumMarks, $penaltyDec
     implies that the submisison is less than a day late and therefore a one
     day penalty is applied.
 
-    .Parameter late_submission
+    .Parameter SubmissionDueDate
     String from 'Submitted late' field of FLO csv export
+
+    .Parameter SubmissionDate
+    String from 'Last Modified (submission) field of FLO csv export
 
     .Parameter maximumMarks
     Maximum marks attainable for this assessment
@@ -67,26 +70,23 @@ function MJFLateSubmissionPenalty ( $late_submission, $maximumMarks, $penaltyDec
     Late penalty expressed as a decimal (eg: 5% == 0.05)
 #>
 
-    $days_late = 0 # Store number of days late here.
+    # Convert the date strings to datetimes
+    $d_currentSubmission = MJFConvertToDate -dateString $SubmissionDate
+    # ...and get the deadline
+    $d_submissionDeadline = MJFConvertToDate -dateString $SubmissionDueDate
+    # Calculate submission lateness
+    $d_submissionLateness = $d_submissionDeadline - $d_currentSubmission
 
-    # Only test if there is something in $late_submission
-    if ( $late_submission ) {
-
-        # Assume that if 'days' does not exist in the string then 
-        # submission is less than one day late.
-            
-        $days_late_match = Select-String -InputObject $late_submission -Pattern '([0-9]+) days .* late'
-        if ( $days_late_match.Matches ) {
-            # If we have a match then we are more than one day late.
-            $days_late = [int]$days_late_match.Matches[0].Groups[1].Value + 1
-        } else {
-            $days_late = 1
-        }
+    
+    if ( $d_submissionLateness.TotalHours -lt 0 ) {
+        # We reduce the mark by the specified percentage per day
+        $f_reduction = [math]::Round(($d_submissionLateness.TotalHours / 24 * -1 ) + 0.5) * $maximumMarks * $penaltyDecimal
+    } else {
+        $f_reduction = 0.0
     }
 
-    $f_reduction = $days_late * $maximumMarks * $penaltyDecimal
     if ( $f_reduction -gt 0 ) {
-        $lateFeedback = "Late penalty applied.  Submitted $late_submission"
+        $lateFeedback = "Late penalty applied - submission deadline: $SubmissionDueDate submitted: $SubmissionDate"
     }
 
     # Return
@@ -115,7 +115,7 @@ function MJFWordCountPenalty ( $penaltyDecimal, $penaltyWordIncrement, $wordLimi
         #TODO: exception handling when opening non-existent or invalid documents
         try {
             $wordDoc = $MSWord.Documents.Open($submissionFilePath)
-            sleep 2
+            sleep 5
             $wordCount = $MSWord.ActiveDocument.ComputeStatistics(0, $false)
         }
         catch {
@@ -125,7 +125,7 @@ function MJFWordCountPenalty ( $penaltyDecimal, $penaltyWordIncrement, $wordLimi
         }
         finally {
             $wordDoc.close() | Out-Null
-            sleep 2
+            sleep 5
         }
     } else {
         $lateFeedback = "No submission file"
@@ -218,7 +218,7 @@ function main() {
         }
 
         # Late submission penalty
-        $late_penalty, $late_feedback = MJFLateSubmissionPenalty -late_submission $row.'Submitted Late' `
+        $late_penalty, $late_feedback = MJFLateSubmissionPenalty -SubmissionDueDate $row.'Due date' -SubmissionDate $row.'Last modified (submission)' `
                                                                  -maximumMarks $row.'Maximum Grade' -penaltyDecimal $late_submission_penalty
 
         # Overword penalty
