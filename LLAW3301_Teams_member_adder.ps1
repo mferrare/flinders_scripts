@@ -100,12 +100,14 @@ function main() {
 
     $TopicTeam = Get-Team -DisplayName $theTeam
     if ( $TopicTeam -eq $null ) {
-        $TopicTeam = New-Team -DisplayName $OverallTeamName
+        $TopicTeam = New-Team -DisplayName $theTeam
     }
 
     # Add each member to the team
     $CSVData | ForEach-Object {
-        Add-TeamUser -GroupId $TopicTeam.GroupID -User $_.'Email address'
+        $email = $_.'FAN' + "@flinders.edu.au"
+        Write-Host "Adding:" $email
+        Add-TeamUser -GroupId $TopicTeam.GroupID -User $email
     }
 }
 
