@@ -195,7 +195,25 @@ function MJFGetDirPath ( $h_Properties )
     Split-Path -Path $FileBrowser.FileName
 }
 
+# MJFConvertToDate
+# Expect: String which is field from marking CSV.  Should be formatted eg: Thursday, 12 September 2019, 4:00 PM
+# Return: Date as DateTime
+function MJFConvertToDate ( $dateString ) {
+    <#
+    .Synopsis
+    Convert a date string received from a FLO marking CSV to a dateTime object and returns
+    that object
+
+    .Parameter dateString
+    Date as string.  Should be formatted eg: Thursday, 12 September 2019, 4:00 PM
+    #>
+    # TODO: Sanity checking
+    # We just assume the string is formatted as we want it
+    [dateTime] $dateString.split(',',2)[1].trim()
+}
+
 Export-ModuleMember -Function MJFGetCSVFile
 Export-ModuleMember -Function MJFGetTeamName
 Export-ModuleMember -Function MJFMakeDir
 Export-ModuleMember -Function MJFGetDirPath
+Export-ModuleMember -Function MJFConvertToDate
