@@ -3,12 +3,23 @@
 #   adjusts penalties accordingly.
 # - Reads submission times from CSV file and deducts
 #   late marks accordingly.
+#
+# *** IMPORTANT ***
+# This script depends on the existence of a 'Due Date' column in the FLO
+# report.  This column *does not exist* for reports generated for individual
+# assessments but does exist for reports generated for group assessements (don't ask)
+# If the column doesn't exist you must:
+# - Add a 'Due Date' column
+# - Fill it with the correct due date for each student.  Make sure you
+#   account for extensions
+# The due date format should be the FLO format ie:
+#   Monday, 24 August 2020 10:00 AM'
 
 Import-Module .\MJFutils.psm1
 
 # Global Variables
 $late_submission_penalty = 0.05  # % penalty as a decimal
-$overword_limit = 500
+$overword_limit = 750
 $overword_increment = 100
 $overword_penalty = 0.05
 
@@ -48,6 +59,17 @@ function MJFLateSubmissionPenalty ( $SubmissionDueDate, $SubmissionDate, $maximu
     Calculates lateness of submission and applies penalty if so.
 
     .Description
+    UPDATE: Not using the 'Submitted Late' column.  Can't rememmber why. 
+    I think this is because the late submission did not take extensions
+    into account (only overrides).  But using the Last modified (submisison)'
+    field means we can take this into account.  So, 'Last Modified (Submission)'
+    is put into $SubmissionDate and I can't rremember how we manage SubmissionDueDate.
+    Oh yes! I add an extra column!  Because the piece o' crap FLO doesn't
+    include a due date in the *individual* assessment reports even though
+    it includes it in the *group* assessment reports!
+    
+    This is how I used to do it but I don't do it this way any more:
+
     FLO records late submissions in a the 'Submitted Late' column.  This
     column contains the number of days or number of hours submitted late
     eg: '2 days 4 hours late' or '44 mins 37 seconds late'.
@@ -115,7 +137,7 @@ function MJFWordCountPenalty ( $penaltyDecimal, $penaltyWordIncrement, $wordLimi
         #TODO: exception handling when opening non-existent or invalid documents
         try {
             $wordDoc = $MSWord.Documents.Open($submissionFilePath)
-            sleep 5
+            Start-Sleep -Seconds 5
             $wordCount = $MSWord.ActiveDocument.ComputeStatistics(0, $false)
         }
         catch {
@@ -125,7 +147,7 @@ function MJFWordCountPenalty ( $penaltyDecimal, $penaltyWordIncrement, $wordLimi
         }
         finally {
             $wordDoc.close() | Out-Null
-            sleep 5
+            Start-Sleep -Seconds 5
         }
     } else {
         $lateFeedback = "No submission file"
