@@ -33,8 +33,10 @@ function MJFConvertWordFilesToPDF ($pathToWordFiles, $pathToPDFFiles) {
         $document = $app_Word.Documents.Open($_.FullName)
         $pdfFilename = $_.BaseName + ".pdf"
         $pdfFileFullPath = Join-Path -Path $pathToPDFFiles -ChildPath $pdfFilename
+        Start-Sleep -Seconds 2
         $document.SaveAs([ref][system.object] $pdfFileFullPath, [ref] 17)
         $document.Close()
+        Start-Sleep -Seconds 5
 
         $i += 1
     }

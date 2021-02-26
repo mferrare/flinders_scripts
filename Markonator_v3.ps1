@@ -19,7 +19,7 @@ Import-Module .\MJFutils.psm1
 
 # Global Variables
 $late_submission_penalty = 0.05  # % penalty as a decimal
-$overword_limit = 750
+$overword_limit = 500
 $overword_increment = 100
 $overword_penalty = 0.05
 

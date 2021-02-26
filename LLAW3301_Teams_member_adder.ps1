@@ -99,7 +99,7 @@ function main() {
     $TeamCredentials = Connect-MicrosoftTeams
 
     $TopicTeam = Get-Team -DisplayName $theTeam
-    if ( $TopicTeam -eq $null ) {
+    if ( $null -eq $TopicTeam ) {
         $TopicTeam = New-Team -DisplayName $theTeam
     }
 

@@ -5,10 +5,11 @@
 # - reads the CSV file
 # - Iterates through CSV data.  Assumes the first column contains the
 #   channel names (no sanity checking)
-# - connects to teams and creates the channels in the specified team
+# - First column must have heading 'Project Identifier'
+# - connects to teams and creates PRIVATE channels in the specified team
 #
 # Note: Requires the MicrosoftTeam powershell module.  See here for
-#       details: https://www.powershellgallery.com/packages/MicrosoftTeams/1.0.4
+#       details: https://www.powershellgallery.com/packages/MicrosoftTeams
 
 # We assume that this will only ever be run from the current directory
 # These are my general utilities
@@ -35,7 +36,7 @@ function main() {
     # Note: This doesn't check to see whether the channel exists already nor
     # does it check for success/failure
     $CSVData | ForEach-Object {
-        New-TeamChannel -GroupId $TopicTeam.GroupID -displayName $_.'Project Identifier'
+        New-TeamChannel -GroupId $TopicTeam.GroupID -displayName $_.'Project Identifier' -MembershipType Private
     }
 }
 
