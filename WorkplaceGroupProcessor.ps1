@@ -1,5 +1,11 @@
-$FilePath = "C:\Users\ferr0182\OneDrive - Flinders\LLAW2221_2019_S2\Workshop Group Allocations summary.csv"
-
+# Creates a HTML table that displays workshop group allocations
+#
+# Takes the group allocations summary and prepares a HTML table which can
+# be copied and pasted into a FLO label.
+# 
+# Note: $FilePath is hard-coded
+# Note: this is one of the earliest scripts I wrote.  It's not very refined.  Be careful!
+$FilePath = "C:\Users\markf\Flinders\Flinders Law - Documents\LLAW3312 Constitutional Law\_LLAW3312_2021_S1\LLAW3312_2021_S1 Workshop Group Allocations Table.csv"
 $CSVData = Import-Csv -Path $FilePath
 
 # This is a dictionary

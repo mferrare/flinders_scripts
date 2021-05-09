@@ -1,19 +1,23 @@
 Add-Type -AssemblyName System.Windows.Forms
 
-function MJFGetFilePath ( $h_Properties )
-{
-    <#
-        .Synopsis
-        Gets full path of the selected file
-    
-        .Description
-        Presents a dialog to select a file.  Properties can be passed in to the
-        function to manage how the file dialog is displayed.  Only a single file can
-        be selected
+function MJFGetFilePath {
+<#
+    .Synopsis
+    Gets full path of the selected file
 
-        .Parameter h_Properties
-        A hash of properties.  key is the name of the property and value is the what the property should be set to
-    #>
+    .Description
+    Presents a dialog to select a file.  Properties can be passed in to the
+    function to manage how the file dialog is displayed.  Only a single file can
+    be selected
+
+    .Parameter h_Properties
+    A hash of properties.  key is the name of the property and value is the what the property should be set to
+#>
+    [cmdletbinding()]
+    param(
+        [hashtable] $h_Properties
+    )
+
     $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ 
         Multiselect = $false
     }
@@ -56,7 +60,8 @@ function MJFGetCSVFile {
     $t_asTable
 }
 
-<#
+function MJFGetTeamName() {
+ <#
     .Synopsis
     Gets the Team name and returns it as a string
 
@@ -66,8 +71,7 @@ function MJFGetCSVFile {
     team name is returned as a string.  If nothing is entered then '' (empty string)
     is returned
 #>
-function MJFGetTeamName() {
-    $form = New-Object System.Windows.Forms.Form
+$form = New-Object System.Windows.Forms.Form
     $form.Text = 'Team Name'
     $form.Size = New-Object System.Drawing.Size(300,200)
     $form.StartPosition = 'CenterScreen'
@@ -112,12 +116,6 @@ function MJFGetTeamName() {
     }
     $x
 }
-
-# MJFMakeDir
-# Expect: Path to parent of new directory to make, name of new directory
-# Return: the path to the new directory or false
-# Returns the path if the directory exists and is a directory or
-# if the directory is created.  False otherwise.
 
 function MJFMakeDir($s_dirPath, $s_newDir){
 <#
@@ -164,7 +162,6 @@ function MJFMakeDir($s_dirPath, $s_newDir){
     }
 }
 
-
 function MJFGetDirPath ( $h_Properties )
 {
 <#
@@ -195,9 +192,6 @@ function MJFGetDirPath ( $h_Properties )
     Split-Path -Path $FileBrowser.FileName
 }
 
-# MJFConvertToDate
-# Expect: String which is field from marking CSV.  Should be formatted eg: Thursday, 12 September 2019, 4:00 PM
-# Return: Date as DateTime
 function MJFConvertToDate ( $dateString ) {
     <#
     .Synopsis
@@ -212,6 +206,7 @@ function MJFConvertToDate ( $dateString ) {
     [dateTime] $dateString.split(',',2)[1].trim()
 }
 
+Export-ModuleMember -Function MJFGetFilePath
 Export-ModuleMember -Function MJFGetCSVFile
 Export-ModuleMember -Function MJFGetTeamName
 Export-ModuleMember -Function MJFMakeDir

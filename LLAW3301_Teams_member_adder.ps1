@@ -103,11 +103,37 @@ function main() {
         $TopicTeam = New-Team -DisplayName $theTeam
     }
 
+    # Get a list of all the channels
+    $theChannels = Get-TeamChannel -GroupId $TopicTeam.GroupID
+
     # Add each member to the team
     $CSVData | ForEach-Object {
+        # Add user to Team if they're not already there
         $email = $_.'FAN' + "@flinders.edu.au"
-        Write-Host "Adding:" $email
-        Add-TeamUser -GroupId $TopicTeam.GroupID -User $email
+        
+        $allTeamMembers = Get-TeamUser -GroupId $TopicTeam.GroupID
+        if ( -not $allTeamMembers.User -contains $email ) {
+            # Add the user as they're not yet in the team
+            Add-TeamUser -GroupId $TopicTeam.GroupID -User $email
+        }
+        
+        # Add user to Channel if they're not already there
+        # We only add the user to the channel if we have a Project identifier associated with
+        # this FAN.
+        if ( $null -ne $_.'Project Identifier') {
+            # Find the channel
+            if ( -not $theChannels.DisplayName -contains $_.'Project Identifier' ) {
+                # Can't creat$e new private channels so just write a warning
+                Write-Host "Channel " $_.'Project Identifier' " does not exist"
+                $channelName = $null
+            } else {
+                $position = $theChannels.DisplayName::indexof($theChannels.DisplayName, $_.'Project Identifier')
+                $channelName = $theChannels[$position].DisplayName
+                Write-Host "Adding:" $email "to channel " $channelName
+                Add-TeamChannelUser -GroupId $TopicTeam.GroupID -DisplayName $channelName -User $email
+            }
+            
+        }
     }
 }
 
