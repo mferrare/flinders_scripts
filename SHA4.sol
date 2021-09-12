@@ -6,7 +6,7 @@ pragma solidity >=0.4.22 <0.6.0;
  
 contract ABC_ShareholderAgreement {
     address public sole_director;
-    address public Mark_Joseph_Ferraretto = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
+    address public Mark_Joseph_Ferraretto = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
     mapping (address => uint) public share_registry;
     
     constructor() public {

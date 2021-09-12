@@ -373,7 +373,7 @@ def do_push():
             except Exception as e:
                 logging.error('Could not push folder: {}  Error: {}'.format(folder, str(e)))
         else:
-            logging.warn('No files to push for folder: {}'.format(folder))
+            logging.warning('No files to push for folder: {}'.format(folder))
     
 
 def do_pull():
