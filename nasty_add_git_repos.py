@@ -1,6 +1,6 @@
 from github import Github
 
-g = Github("28329cd6600a3ae76b21bf5093669c26fcf64cf2")
+g = Github("xxx")
 
 repos = { 
     "BDF1" : [],

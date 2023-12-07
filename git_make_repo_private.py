@@ -10,7 +10,7 @@ def initialise():
 
     # Connect to my GH
     global g
-    g = Github("28329cd6600a3ae76b21bf5093669c26fcf64cf2")
+    g = Github("xxx")
 
 initialise()
 for repo in g.get_user().get_repos():

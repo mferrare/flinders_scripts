@@ -16,7 +16,7 @@ def initialise():
 
     # Connect to my GH
     global g
-    g = Github("1080875a97060687bed288517b5992fab232f30e")
+    g = Github("xxx")
 
 def process_csv():
     # Expect: Nothing

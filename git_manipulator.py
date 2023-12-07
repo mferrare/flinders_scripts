@@ -20,7 +20,7 @@ def initialise():
 
     # Connect to my GH
     global g
-    g = Github("91a44974b28eee9daa21e2cc9e2797a15deefd0d")
+    g = Github("xxx")
 
 def fork_repo(FAN):
     # Expect: FAN
